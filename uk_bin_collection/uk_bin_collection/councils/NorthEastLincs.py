@@ -1,11 +1,10 @@
 import pandas as pd
 from bs4 import BeautifulSoup
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.common import date_format
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 class CouncilClass(AbstractGetBinDataClass):
-
     """
     Concrete classes have to implement all abstract operations of the
     baseclass. They can also override some
@@ -27,7 +26,7 @@ class CouncilClass(AbstractGetBinDataClass):
             element_text = [x.strip() for x in element_text]
 
             bin_type = element_text[1]
-            collection_date = pd.Timestamp(element_text[0]).strftime("%d/%m/%Y")
+            collection_date = pd.Timestamp(element_text[0]).strftime(date_format)
 
             dict_data = {
                 "type": bin_type,
@@ -43,7 +42,7 @@ class CouncilClass(AbstractGetBinDataClass):
             element_text = [x.strip() for x in element_text]
 
             bin_type = element_text[1]
-            collection_date = pd.Timestamp(element_text[0]).strftime("%d/%m/%Y")
+            collection_date = pd.Timestamp(element_text[0]).strftime(date_format)
 
             dict_data = {
                 "type": bin_type,

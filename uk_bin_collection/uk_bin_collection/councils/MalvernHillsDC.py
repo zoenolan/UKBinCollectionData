@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -25,7 +24,8 @@ class CouncilClass(AbstractGetBinDataClass):
         # we can just provide uprn
 
         # Make a request to the API
-        response = requests.post(api_url, data=form_data)
+        requests.packages.urllib3.disable_warnings()
+        response = requests.post(api_url, data=form_data, verify=False)
 
         # Make a BS4 object
         soup = BeautifulSoup(response.text, features="html.parser")

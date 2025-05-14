@@ -1,30 +1,39 @@
+
 # Contents
 - [Contents](#contents)
 - [Contributor guidelines](#contributor-guidelines)
-  * [Getting Started](#getting-started)
-    + [Environment Setup](#environment-setup)
-  * [Project Aims](#project-aims)
-    + [What can I contribute to?](#what-can-i-contribute-to-)
+  - [Getting Started](#getting-started)
+    - [Environment Setup](#environment-setup)
+  - [Project Aims](#project-aims)
+    - [What can I contribute to?](#what-can-i-contribute-to)
+  - [Claiming an issue](#claiming-an-issue)
+  - [Pushing your changes](#pushing-your-changes)
 - [Adding a scraper](#adding-a-scraper)
-  * [Approach](#approach)
-  * [Developing](#developing)
-    + [Kwargs](#kwargs)
-    + [Common Functions](#common-functions)
-  * [Additional files](#additional-files)
-    + [Input JSON file](#input-json-file)
-    + [Output JSON file](#output-json-file)
-    + [Council schema](#council-schema)
-    + [Feature file](#feature-file)
-  * [Testing](#testing)V
-    + [Behave (Integration Testing)](#behave--integration-testing-)
-      - [Running the Behave tests](#running-the-behave-tests)
+  - [Developing](#developing)
+    - [Developing using our Dev Container](#developing-using-our-dev-container)
+      - [Prerequisites](#prerequisites)
+      - [Step 1: Clone the Repository](#step-1-clone-the-repository)
+      - [Step 2: Set Up Docker](#step-2-set-up-docker)
+      - [Step 3: Open the Project in VSCode](#step-3-open-the-project-in-vscode)
+      - [Step 4: Reopen in Container](#step-4-reopen-in-container)
+      - [Step 5: Verify the Development Environment](#step-5-verify-the-development-environment)
+    - [Developing](#developing-1)
+    - [Kwargs](#kwargs)
+    - [Common Functions](#common-functions)
+  - [Additional files](#additional-files)
+    - [Input JSON file](#input-json-file)
+  - [Testing](#testing)
+    - [Behave (Integration Testing)](#behave-integration-testing)
+      - [Running the Behave tests for all councils](#running-the-behave-tests-for-all-councils)
+      - [Running the Behave tests for a specific council](#running-the-behave-tests-for-a-specific-council)
       - [GitHub Actions Integration Tests](#github-actions-integration-tests)
       - [Test Results](#test-results)
-        * [Allure Report](#allure-report)
-        * [CodeCov Report](#codecov-report)
-    + [Pytest (Unit Testing)](#pytest--unit-testing-)
+        - [Allure Report](#allure-report)
+        - [CodeCov Report](#codecov-report)
+    - [Pytest (Unit Testing)](#pytest-unit-testing)
       - [Running the Unittests](#running-the-unittests)
 - [Contact info](#contact-info)
+
 
 
 # Contributor guidelines
@@ -32,8 +41,7 @@ This document contains guidelines on contributing to the UKBCD project including
 the environment, how we use our issue tracker, and how you can develop more scrapers.
 
 ## Getting Started
-You will need to install Python on the system you plan to run the script from. Python 3.8 and 3.9 are officially supported.
-Python 3.10 and 3.11 should work, but your mileage _may_ vary.
+You will need to install Python on the system you plan to run the script from. Python 3.12 is tested on this project .
 
 The project uses [poetry](https://python-poetry.org/docs/) to manage dependencies and setup the build environment.
 
@@ -45,10 +53,11 @@ pip install poetry
 git clone https://github.com/robbrad/UKBinCollectionData
 cd UKBinCollectionData
 
-#Install Dependencies 
+# Install Dependencies 
 poetry install
 poetry shell
 ```
+
 ## Project Aims
 - To provide a real-world environment to learn Python and/or web scraping
 - To provide UK bin data in a standardised format for use (albeit not exclusively) with [HomeAssistant](https://www.home-assistant.io/)
@@ -58,11 +67,26 @@ poetry shell
 - Tasks that require [additional input](https://github.com/robbrad/UKBinCollectionData/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) have the `help wanted` label - these can be trickier requests or may have many smaller tasks.
 - [Easier tasks](https://github.com/robbrad/UKBinCollectionData/labels/good%20first%20issue), that would be a good fit for people new to the project or the world of web scraping are labelled with the `good first issue` label
 
+## Claiming an issue
+If there is an existing issue you wish to work on, please do the following things:
+- Assign the issue to yourself (or ask someone to assign you) - that way,  others know you're working on it
+- Create a new branch - its recommended to use the 'create a branch' option on the issue page, create it in your forked repo and then checkout the branch locally (or in your IDE).
+
+**NB:** Exploratory work doesn't require claiming an issue - you only need to claim if you plan on developing the full scraper and associated files. If you just want to explore an issue, feel free to do so - and also feel free to post anything helpful in the issue comments.
+
+## Pushing your changes
+There are guides below on how to add a scraper to the project, along with what files are needed and what tests should be run.
+When the time comes to push your changes, please be aware that we use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) to provide a clear summary of what a change does. This means that commit messages should start with one of the following:
+- `feat:` for a new feature (including a new scraper)
+- `fix:` for when a bug is fixed or an issue is resolved
+- `docs:` for when changes to documentations are made
+
+Don't worry if you forget - commit messages are automatically checked when you open a merge request by a lint checker, and can easily be rectified by recommitting or pushing again with the correct prefix.
+
 
 
 # Adding a scraper
-## Approach
-This repo uses a design pattern called the [Template Method](https://refactoring.guru/design-patterns/template-method) which basically allows for a structured class that can be extended. In our case, the getting of the data from the council and the presentation of the JSON remains the same via the [abstract class](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/get_bin_data.py#L21) - however the scraping of each council is different and this allows us to have a class for each [council](https://github.com/robbrad/UKBinCollectionData/tree/master/uk_bin_collection/uk_bin_collection/councils) - you can see this in action [here](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/councils/CheshireEastCouncil.py#L5,L16).
+This project uses a design pattern called the [Template Method](https://refactoring.guru/design-patterns/template-method) which basically allows for a structured class that can be extended. In our case, the getting of the data from the council and the presentation of the JSON remains the same via the [abstract class](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/get_bin_data.py#L21) - however the scraping of each council is different and this allows us to have a class for each [council](https://github.com/robbrad/UKBinCollectionData/tree/master/uk_bin_collection/uk_bin_collection/councils) - you can see this in action [here](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/councils/CheshireEastCouncil.py#L5,L16).
 
 There are a few different options for scraping, and you are free to choose whichever best suits the council:
 - Using [Beautiful Soup 4](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/councils/CheshireEastCouncil.py)
@@ -73,23 +97,102 @@ There are a few different options for scraping, and you are free to choose which
 ## Developing
 To get started, first you will need to fork this repository and setup your own working environment before you can start developing.
 
-Once your environment is ready, create a new branch from your master/main branch and then create a new .py file within the `uk_bin_collection\councils` directory. The new .py file will be used in the CLI to call the parser, so be sure to pick a sensible name - e.g. CheshireEastCouncil.py is called with:
+### Developing using our Dev Container
+You need to set up Docker, Visual Studio Code (VSCode), and a development container (devcontainer) after cloning the repository at https://github.com/robbrad/UKBinCollectionData.
+
+#### Prerequisites
+Before you start, make sure you have the following installed on your computer:
+- Docker: [Download Docker](https://www.docker.com/products/docker-desktop)
+- Visual Studio Code (VSCode): [Download VSCode](https://code.visualstudio.com/download)
+- Remote - Containers extension for VSCode: Install it from the VSCode Marketplace or directly from the Extensions view (`Ctrl+Shift+X` in VSCode and search for "Remote - Containers").
+
+#### Step 1: Clone the Repository
+First, clone the repository to your local machine. Open a terminal and run the following command:
+```bash
+git clone https://github.com/robbrad/UKBinCollectionData.git
+```
+Navigate into the directory:
+```bash
+cd UKBinCollectionData
+```
+
+#### Step 2: Set Up Docker
+Ensure Docker is running on your system. You can verify this by running:
+```bash
+docker -v
+```
+This should return the version of Docker installed. If Docker is running, you’ll see no errors.
+
+#### Step 3: Open the Project in VSCode
+Open VSCode, and then open the cloned repository by going to `File > Open Folder...` and selecting the `UKBinCollectionData` folder.
+
+#### Step 4: Reopen in Container
+Once the folder is open in VSCode:
+1. A prompt might appear asking you to reopen in a container. If it does, select "Reopen in Container".
+2. If you don’t see the prompt, press `F1` to open the command palette, type "Remote-Containers: Reopen in Container", and select that option.
+
+VSCode will start building the Docker container as defined in the `.devcontainer/` folder in the repository. This process can take a few minutes as it involves downloading the base Docker and Selenium hub images and setting up the environment.
+
+#### Step 5: Verify the Development Environment
+Once the container is set up, VSCode will connect to it automatically. You can start editing and running the code inside the container. This ensures that your development environment is consistent and controlled, replicating the same settings and tools as specified in the devcontainer configuration.
+
+### Developing
+Once your environment is ready, create a new branch from your master/main branch
+
+Then you can run
+
+```
+poetry run python uk_bin_collection/uk_bin_collection/create_new_council.py "CouncilName" "CouncilURL"
+```
+
+The new .py file will be used in the CLI to call the parser, so be sure to pick a sensible name - e.g. CheshireEastCouncil.py is called with:
 ```
 python collect_data.py CheshireEastCouncil <web-url>
 ```
 
-To simplify things somewhat, a [template](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/councils/council_class_template/councilclasstemplate.py) file has been created - open this file, copy the contents to your new .py file and start from there. You are pretty much free to approach the scraping however you would like, but please ensure that:
-- Your scraper returns a dictionary made up of the key "bins" and a value that is a list of bin types and collection dates (see [outputs folder](https://github.com/robbrad/UKBinCollectionData/tree/master/uk_bin_collection/tests/outputs) for examples).
+To simplify things somewhat, a [template](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/councils/council_class_template/councilclasstemplate.py) file has been created - open this file, copy the contents to your new .py file and start from there. The create script above will create
+
+1. A council Class file under the councils folder
+2. Make an entry in input.json
+
+You are pretty much free to approach the scraping however you would like, but please ensure that:
+- Your scraper returns a dictionary made up of the key "bins" and a value that is a list of bin types and collection dates. An example of this can be seen below.
 - Any dates or times are formatted to standard UK formats (see [below](#common-functions))
+<details>
+  <summary>Output Example</summary>
+
+```json
+{
+    "bins": [
+        {
+            "type": "Empty Standard Mixed Recycling",
+            "collectionDate": "29/07/2022"
+        },
+        {
+            "type": "Empty Standard Garden Waste",
+            "collectionDate": "29/07/2022"
+        },
+        {
+            "type": "Empty Standard General Waste",
+            "collectionDate": "05/08/2022"
+        }
+    ]
+}
+```
+</details>
 
 ### Kwargs
 UKBCD has two mandatory parameters when it runs - the name of the parser (sans .py) and the URL from which to scrape. However, developers can also get the following data using `kwargs`:
 
-| Parameter    | Prompt               | Notes                                    | kwargs.get               |
-|--------------|----------------------|------------------------------------------|--------------------------|
-| UPRN         | `-u` or `--uprn`     |                                          | `kwargs.get('uprn')`     |
-| House number | `-n` or `--number`   | Sometimes called PAON                    | `kwargs.get('paon')`     |
-| Postcode     | `-p` or `--postcode` | Needs to be wrapped in quotes on the CLI | `kwargs.get('postcode')` |
+| Parameter                               | Prompt                   | Notes                                                       | kwargs.get                   |
+|-----------------------------------------|--------------------------|-------------------------------------------------------------|------------------------------|
+| UPRN (Unique Property Reference Number) | `-u` or `--uprn`         |                                                             | `kwargs.get('uprn')`         |
+| USRN (Unique Street Reference Number)   | `-us` or `--usrn`        |                                                             | `kwargs.get('usrn')`         |
+| House number                            | `-n` or `--number`       | Sometimes called PAON                                       | `kwargs.get('paon')`         |
+| Postcode                                | `-p` or `--postcode`     | Needs to be wrapped in quotes on the CLI                    | `kwargs.get('postcode')`     |
+| Skip Get URL                            | `-s` or `--skip_get_url` |                                                             | `kwargs.get('skip_get_url')` |
+| URL for remote Selenium web driver      | `-w` or `--web_driver`   | Needs to be wrapped in quotes on the CLI                    | `kwargs.get('web_driver')`   |
+| Development Mode                        | `-d` or `--dev_mode`     | Create/update council's entry in the input.json on each run | `kwargs.get('dev_mode')`     |
 
 These parameters are useful if you're using something like the requests module and need to take additional user information into the request, such as:
 ```commandline
@@ -105,8 +208,7 @@ Each parameter also has its own validation method that should be called after th
 - `check_paon()`
 - `check_postcode()`
 
-The first two are simple validators - if the parameter is used but no value is given, they will throw an exception. `check_postcode()` works differently - 
-instead making a call to the [postcodes.io](https://postcodes.io/) API to check if it exists or not. An exception will only be thrown here if the response code is not `HTTP 200`.
+The first two are simple validators - if the parameter is used but no value is given, they will throw an exception. `check_postcode()` works differently -  instead making a call to the [postcodes.io](https://postcodes.io/) API to check if it exists or not. An exception will only be thrown here if the response code is not `HTTP 200`.
 
 ### Common Functions
 The project has a small but growing library of functions (and the occasional variable) that are useful when scraping websites or calendars - aptly named [common.py](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/uk_bin_collection/common.py).
@@ -115,6 +217,7 @@ Useful functions include:
 - a function to check [if a date is a holiday](https://github.com/robbrad/UKBinCollectionData/blob/e49da2f43143ac7c65fbeaf35b5e86b3ea19e31b/uk_bin_collection/uk_bin_collection/common.py#L117) in a given part of the UK
 - a function that returns the [dates of a given weekday](https://github.com/robbrad/UKBinCollectionData/blob/e49da2f43143ac7c65fbeaf35b5e86b3ea19e31b/uk_bin_collection/uk_bin_collection/common.py#L136) in N amounts of weeks
 - a function that returns a [list of dates every N days](https://github.com/robbrad/UKBinCollectionData/blob/e49da2f43143ac7c65fbeaf35b5e86b3ea19e31b/uk_bin_collection/uk_bin_collection/common.py#L148) from a given start date
+- a function to check [if a string contains a date](./uk_bin_collection/uk_bin_collection/common.py#L249) (leverages [dateutil's parser](https://dateutil.readthedocs.io/en/stable/parser.html))
 
 `common.py` also contains a [standardised date format](https://github.com/robbrad/UKBinCollectionData/blob/e49da2f43143ac7c65fbeaf35b5e86b3ea19e31b/uk_bin_collection/uk_bin_collection/common.py#L11) variable called `date_format`, which is useful to call when formatting datetimes.
 
@@ -128,9 +231,6 @@ Please feel free to contribute to this library as you see fit - added functions 
 In order for your scraper to work with the project's testing suite, some additional files need to be provided or
 modified:
 - [ ] [Input JSON file](#input-json-file)
-- [ ] [Output JSON file](#output-json-file)
-- [ ] [Council Schema](#council-schema)
-- [ ] [Feature file](#feature-file)
 
 **Note:** from here on, anything containing`<council_name>` should be replaced with the scraper's name.
 
@@ -171,114 +271,6 @@ recommended - the council's address is usually a good one).
 ```
 </details>
 
-### Output JSON file
-| Type | File location                                                             |
-|------|---------------------------------------------------------------------------|
-| Add  | `UKBinCollectionData/uk_bin_collection/tests/outputs/<council_name>.json` |
-
-A sample of what the scraper outputs should be provided in the [outputs](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/tests/outputs/)
-folder. This can be taken from your development environment's console or a CLI. Please only include the "bins" data.
-
-Adding the `-d` or `--dev_mode` parameter to your CLI command enables development mode which creates/updates the Output JSON file for the council automatically for you on each run
-
-<details>
-  <summary>Example</summary>
-
-```json
-{
-    "bins": [
-        {
-            "bin_type": "Empty Standard Mixed Recycling",
-            "collectionDate": "29/07/2022"
-        },
-        {
-            "bin_type": "Empty Standard Garden Waste",
-            "collectionDate": "29/07/2022"
-        },
-        {
-            "bin_type": "Empty Standard General Waste",
-            "collectionDate": "05/08/2022"
-        }
-    ]
-}
-```
-</details>
-
-### Council schema
-| Type | File location                                                                       |
-|------|-------------------------------------------------------------------------------------|
-| Add  | `UKBinCollectionData/uk_bin_collection/tests/council_schemas/<council_name>.schema` |
-
-Using the above [output](#output-json-file), you will need to generate a JSON schema that the integration test can run
-against. Luckily, this is pretty easy and can be done using an [online tool](https://jsonformatter.org/json-to-jsonschema).
-
-**Note:** due to seasonal collections (entirely dependent on council, of course), the schema may not include all bin types.
-If this is the case, you may need to add them to the bin_type `enum` manually (usually around the end of the file).
-
-<details>
-  <summary>Example</summary>
-
-```json
-{
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "#/definitions/Welcome10",
-    "definitions": {
-        "Welcome10": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "bins": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Bin"
-                    }
-                }
-            },
-            "required": [
-                "bins"
-            ],
-            "title": "Welcome10"
-        },
-        "Bin": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "bin_type": {
-                    "$ref": "#/definitions/BinType"
-                },
-                "collectionDate": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "bin_type",
-                "collectionDate"
-            ],
-            "title": "Bin"
-        },
-        "BinType": {
-            "type": "string",
-            "enum": [
-                "Empty Standard Mixed Recycling",
-                "Empty Standard Garden Waste",
-                "Empty Standard General Waste"
-            ],
-            "title": "BinType"
-        }
-    }
-}
-```
-</details>
-
-### Feature file
-| Type   | File location                                                                           |
-|--------|-----------------------------------------------------------------------------------------|
-| Modify | `UKBinCollectionData/uk_bin_collection/tests/features/validate_council_outputs.feature` |
-
-The council's name should be added to the feature file's example list. These names are alphabetically sorted, although
-`council` should always remain on line 10. The name should be wrapped in pipes.
-
-
 ## Testing
 ### Behave (Integration Testing)
 As with any web scraping project, there's a reliance on the council not changing their website - if this happens Beautiful Soup 
@@ -287,14 +279,54 @@ of "what works and what needs work" - we have created a set of Integration tests
 file. 
 
 Based on the [input.json](https://github.com/robbrad/UKBinCollectionData/blob/master/uk_bin_collection/tests/input.json),
-this does an actual live run against the council's site and validates if the returned data is JSON and conforms to a [JSON Schema](https://github.com/robbrad/UKBinCollectionData/tree/master/uk_bin_collection/tests/council_schemas) for that council.
+this does an actual live run against the council's site and validates if the returned data is JSON and conforms to the common format [JSON Schema](https://github.com/robbrad/UKBinCollectionData/tree/master/uk_bin_collection/tests/output.schema).
 
+By default if the council is a Selenium based council it will run in headless mode. If you pass `--headless=False` to pytest (possible in VS Code launch.json useful for debugging code) It will run in a visable browser.
 
-#### Running the Behave tests
+It also defaults the Selenium URL to be `http://localhost:4444` and the local_browser to False
+
+You can set pytest to test on your local web browser without Selenium Grid by setting `--local_browser=True`
+If you want a different Selenium URL you can set it with `--selenium_url=http://selenium:4444` NOTE: you can't set `--local_browser=True` (defaults: False) as Selenium testing will be ignored
+
+In VSCode if you set a make a launch.json you can debug the test locally with the following setup
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "purpose": ["debug-test"],
+            "env": {
+                "PYTEST_ADDOPTS": "--headless=False --local_browser=True"
+            }
+        }
+    ]
+}
+```
+
+It is also possible to run
+```commandline
+#Visable Selenium Run in Local Broswer
+poetry run pytest uk_bin_collection/tests/step_defs/ -k "Council_Name" --headless=False --local_browser=True
+
+#Visable Selenium Run in on Selenium Grid
+poetry run pytest uk_bin_collection/tests/step_defs/ -k "Council_Name" --headless=False --selenium_url=http://localhost:4444
+```
+
+#### Running the Behave tests for all councils
 ```commandline
 cd UKBinCollectionData
 poetry shell
 poetry run pytest uk_bin_collection/tests/step_defs/ -n logical
+```
+
+#### Running the Behave tests for a specific council
+```commandline
+cd UKBinCollectionData
+poetry shell
+poetry run pytest uk_bin_collection/tests/step_defs/ -n logical -k "BarnetCouncil"
 ```
 
 #### GitHub Actions Integration Tests

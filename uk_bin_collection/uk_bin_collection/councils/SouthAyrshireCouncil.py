@@ -3,8 +3,7 @@ from datetime import timedelta
 
 import requests
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -36,6 +35,7 @@ class CouncilClass(AbstractGetBinDataClass):
             "OS_ver": "31",
             "app_ver": "35",
         }
+        requests.packages.urllib3.disable_warnings()
         response = requests.get(
             "http://www.sac-bins.co.uk/get_calendar.php", params=params, headers=headers
         )

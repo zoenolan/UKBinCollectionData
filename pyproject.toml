@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "uk_bin_collection"
-version = "0.1.0"
-description = ""
+version = "0.152.0"
+description = "Python Lib to collect UK Bin Data"
 readme = "README.md"
 authors = ["Robert Bradley <robbrad182@gmail.com>"]
 packages = [
@@ -14,6 +14,9 @@ pythonpath = [
     ".", "uk_bin_collection"
 ]
 
+[tool.flit.metadata]
+module = "uk_bin_collection"
+
 [tool.poetry.urls]
 issues = "https://github.com/robbrad/UKBinCollectionData/issues"
 
@@ -25,17 +28,21 @@ build-backend = "poetry.core.masonry.api"
 black = "*"
 coverage = "*"
 flake8 = "*"
-jsonschema = "^4.7.2"
+jsonschema = "*"
 pylint = "*"
 pytest = "*"
 setuptools = "*"
-pytest-bdd = "^6.1.1"
-allure-pytest-bdd = "^2.12.0"
-pytest-xdist = {extras = ["psutil"], version = "^3.2.0"}
-
+pytest-bdd = "*"
+pytest-xdist = {extras = ["psutil"], version = "*"}
+pyhamcrest = "*"
+tabulate = "^0.9.0"
+pytest-asyncio = "^0.24.0"
+pytest-freezer = "^0.4.8"
+homeassistant = "^2023.10"
+geopandas = "^1.0.1"
 
 [tool.poetry.scripts]
-uk_bin_collection = "uk_bin_collection.uk_bin_collection:collect_data"
+uk_bin_collection = "uk_bin_collection.uk_bin_collection.collect_data:run"
 
 [tool.dephell.main]
 versioning = "semver"
@@ -45,9 +52,25 @@ to = {format = "poetry", path = "pyproject.toml"}
 
 [tool.poetry.dependencies]
 bs4 = "*"
-holidays = ">=0.16"
+python-dateutil = "*"
+holidays = "*"
 pandas = "*"
-python = ">=3.8,<4"
+python = ">=3.12,<3.14"
 requests = "*"
-selenium = "^4.8.0"
-lxml = "^4.9.2"
+selenium = "*"
+lxml = "*"
+urllib3 = "*"
+webdriver-manager = "^4.0.1"
+tabulate = "^0.9.0"
+icalevents = "^0.2.1"
+
+[tool.commitizen]
+major_version_zero = true
+version_provider = "poetry"
+version_scheme = "semver"
+version_files = [
+    "custom_components/uk_bin_collection/manifest.json:version",
+    "custom_components/uk_bin_collection/manifest.json:requirements",
+    "custom_components/uk_bin_collection/config_flow.py:githubusercontent"
+]
+

@@ -2,12 +2,17 @@ import calendar
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 
 import holidays
 import pandas as pd
 import requests
+from dateutil.parser import parse
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from urllib3.exceptions import MaxRetryError
+from webdriver_manager.chrome import ChromeDriverManager
 
 date_format = "%d/%m/%Y"
 days_of_week = {
@@ -22,11 +27,10 @@ days_of_week = {
 
 
 class Region(Enum):
-    UK = 1
-    ENGLAND = 2
-    NORTHERN_IRELAND = 3
-    SCOTLAND = 4
-    WALES = 5
+    ENG = 1
+    NIR = 2
+    SCT = 3
+    WLS = 4
 
 
 def check_postcode(postcode: str):
@@ -74,6 +78,20 @@ def check_uprn(uprn: str):
         print("Please check the provided UPRN.")
 
 
+def check_usrn(usrn: str):
+    """
+    Checks that the USRN exists
+        :param uprn: USRN to check
+    """
+    try:
+        if usrn is None or usrn == "":
+            raise ValueError("Invalid USRN")
+        return True
+    except Exception as ex:
+        print(f"Exception encountered: {ex}")
+        print("Please check the provided USRN.")
+
+
 def get_date_with_ordinal(date_number: int) -> str:
     """
     Return ordinal text on day of date
@@ -86,6 +104,16 @@ def get_date_with_ordinal(date_number: int) -> str:
         if 4 <= date_number % 100 <= 20
         else {1: "st", 2: "nd", 3: "rd"}.get(date_number % 10, "th")
     )
+
+
+def has_numbers(inputString: str) -> bool:
+    """
+
+    :rtype: bool
+    :param inputString: String to check for numbers
+    :return: True if any numbers are found in input string
+    """
+    return any(char.isdigit() for char in inputString)
 
 
 def remove_ordinal_indicator_from_date_string(date_string: str) -> str:
@@ -118,21 +146,48 @@ def parse_header(raw_header: str) -> dict:
     return header
 
 
-def is_holiday(date_to_check: datetime, region: Region = Region.UK) -> bool:
+def is_holiday(date_to_check: datetime, region: Region = Region.ENG) -> bool:
     """
     Checks if a given date is a public holiday
         :param date_to_check: Date to check if holiday
-        :param region: The UK nation to check. Defaults to UK.
+        :param region: The UK nation to check. Defaults to ENG.
         :return: Bool - true if a holiday, false if not
     """
-    subdiv = region.name.upper()
-
-    uk_holidays = holidays.country_holidays("GB", subdiv=subdiv)
+    uk_holidays = holidays.country_holidays("GB", subdiv=region.name)
 
     if date_to_check in uk_holidays:
         return True
     else:
         return False
+
+
+def is_weekend(date_to_check: datetime) -> bool:
+    """
+    Checks if a given date is a weekend
+    :param date_to_check: Date to check if it falls on a weekend
+    :return: Bool - true if a weekend day, false if not
+    """
+    return True if date_to_check.date().weekday() >= 5 else False
+
+
+def is_working_day(date_to_check: datetime, region: Region = Region.ENG) -> bool:
+    """
+    Wraps is_holiday() and is_weekend() into one function
+    :param date_to_check: Date to check if holiday
+    :param region: The UK nation to check. Defaults to ENG.
+    :return: Bool - true if a working day (non-holiday, Mon-Fri).
+    """
+    return (
+        False
+        if is_holiday(date_to_check, region) or is_weekend(date_to_check)
+        else True
+    )
+
+
+def get_next_working_day(date: datetime, region: Region = Region.ENG) -> datetime:
+    while not is_working_day(date, region):
+        date += timedelta(days=1)
+    return date
 
 
 def get_weekday_dates_in_period(start: datetime, day_of_week: int, amount=8) -> list:
@@ -147,48 +202,159 @@ def get_weekday_dates_in_period(start: datetime, day_of_week: int, amount=8) -> 
         pd.date_range(
             start=start, freq=f"W-{calendar.day_abbr[day_of_week]}", periods=amount
         )
-        .strftime("%d/%m/%Y")
+        .strftime(date_format)
         .tolist()
     )
 
 
-def get_dates_every_x_days(start: datetime, x: int, amount: int = 8) -> list:
+def get_dates_every_x_days(start: datetime, step: int, amount: int = 8) -> list:
     """
     Returns a list of dates for `X` days from start date. For example, calling `get_stepped_dates_in_period(s, 21, 4)` would
     return `4` dates every `21` days from the start date `s`
         :param start: Date to start from
-        :param x: X amount of days
+        :param step: X amount of days
         :param amount: Number of dates to find
         :return: List of dates every X days from start date
         :rtype: list
     """
     return (
-        pd.date_range(start=start, freq=f"{x}D", periods=amount)
-        .strftime("%d/%m/%Y")
+        pd.date_range(start=start, freq=f"{step}D", periods=amount)
+        .strftime(date_format)
         .tolist()
     )
+
+
+def get_next_occurrence_from_day_month(date: datetime) -> datetime:
+    current_date = datetime.now()
+    # Get the current day and month as integers
+    current_day = current_date.day
+    current_month = current_date.month
+
+    # Extract the target day and month from the input date
+    target_day = date.day
+    target_month = date.month
+
+    # Check if the target date has already occurred this year
+    if (target_month < current_month) or (
+        target_month == current_month and target_day < current_day
+    ):
+        date = pd.to_datetime(date) + pd.DateOffset(years=1)
+
+    return date
 
 
 def remove_alpha_characters(input_string: str) -> str:
     return "".join(c for c in input_string if c.isdigit() or c == " ")
 
 
-def write_output_json(council: str, content: str):
-    cwd = os.getcwd()
-    outputs_path = os.path.join(cwd, "..", "tests", "outputs")
-    if not os.path.exists(outputs_path) or not os.path.isdir(outputs_path):
-        outputs_path = os.path.join(cwd, "uk_bin_collection", "tests", "outputs")
-    if os.path.exists(outputs_path) and os.path.isdir(outputs_path):
-        with open(os.path.join(outputs_path, council + ".json"), "w") as f:
-            f.write(content)
-    else:
-        print("Exception encountered: Unable to save Output JSON file for the council.")
-        print(
-            "Please check you're running developer mode from either the UKBinCollectionData "
-            "or uk_bin_collection/uk_bin_collection/ directories."
-        )
+def update_input_json(council: str, url: str, input_file_path: str, **kwargs):
+    """
+    Create or update a council's entry in the input.json file.
+
+    :param council: Name of the council.
+    :param url: URL associated with the council.
+    :param input_file_path: Path to the input JSON file.
+    :param kwargs: Additional parameters to store (postcode, paon, uprn, usrn, web_driver, skip_get_url).
+    """
+    try:
+        data = load_data(input_file_path)
+        council_data = data.get(council, {"wiki_name": council})
+        council_data.update({"url": url, **kwargs})
+        data[council] = council_data
+
+        save_data(input_file_path, data)
+    except IOError as e:
+        print(f"Error updating the JSON file: {e}")
+    except json.JSONDecodeError:
+        print("Failed to decode JSON, check the integrity of the input file.")
 
 
-def validate_dates(bin_dates: dict) -> dict:
-    raise NotImplementedError()
-    # If a date is in December and the next is in January, increase the year
+def load_data(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            return json.load(file)
+    return {}
+
+
+def save_data(file_path, data):
+    with open(file_path, "w") as file:
+        json.dump(data, file, sort_keys=True, indent=4)
+
+
+def get_next_day_of_week(day_name, date_format="%d/%m/%Y"):
+    days_of_week = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    today = datetime.now()
+    today_idx = today.weekday()  # Monday is 0 and Sunday is 6
+    target_idx = days_of_week.index(day_name)
+
+    days_until_target = (target_idx - today_idx) % 7
+    if days_until_target == 0:
+        days_until_target = 7  # Ensure it's the next instance of the day, not today if today is that day
+
+    next_day = today + timedelta(days=days_until_target)
+    return next_day.strftime(date_format)
+
+
+def contains_date(string, fuzzy=False) -> bool:
+    """
+    Return whether the string can be interpreted as a date.
+
+    :param string: str, string to check for date
+    :param fuzzy: bool, ignore unknown tokens in string if True
+    """
+    try:
+        parse(string, fuzzy=fuzzy)
+        return True
+
+    except ValueError:
+        return False
+
+
+def create_webdriver(
+    web_driver: str = None,
+    headless: bool = True,
+    user_agent: str = None,
+    session_name: str = None,
+) -> webdriver.Chrome:
+    """
+    Create and return a Chrome WebDriver configured for optional headless operation.
+
+    :param web_driver: URL to the Selenium server for remote web drivers. If None, a local driver is created.
+    :param headless: Whether to run the browser in headless mode.
+    :param user_agent: Optional custom user agent string.
+    :param session_name: Optional custom session name string.
+    :return: An instance of a Chrome WebDriver.
+    :raises WebDriverException: If the WebDriver cannot be created.
+    """
+    options = webdriver.ChromeOptions()
+    if headless:
+        options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
+    if user_agent:
+        options.add_argument(f"--user-agent={user_agent}")
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    if session_name and web_driver:
+        options.set_capability("se:name", session_name)
+
+    try:
+        if web_driver:
+            return webdriver.Remote(command_executor=web_driver, options=options)
+        else:
+            return webdriver.Chrome(
+                service=ChromeService(ChromeDriverManager().install()), options=options
+            )
+    except MaxRetryError as e:
+        print(f"Failed to create WebDriver: {e}")
+        raise

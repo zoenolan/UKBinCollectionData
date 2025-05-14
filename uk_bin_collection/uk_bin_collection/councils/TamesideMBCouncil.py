@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 
 import requests
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 class CouncilClass(AbstractGetBinDataClass):
@@ -24,6 +23,7 @@ class CouncilClass(AbstractGetBinDataClass):
 
         headers = {"content-type": "text/plain"}
 
+        requests.packages.urllib3.disable_warnings()
         response = requests.post(api_url, json=params, headers=headers)
 
         json_response = json.loads(response.content)["GetBinCollectionResult"]["Data"]

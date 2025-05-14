@@ -1,48 +1,48 @@
-# This script pulls (in one hit) the data from Cheshire East Council Bins Data
-import re
+from typing import Dict, Any, Optional
+from bs4 import BeautifulSoup, Tag, NavigableString
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
-from bs4 import BeautifulSoup
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+"""
+This module provides bin collection data for Cheshire East Council.
+"""
 
 
-# import the wonderful Beautiful Soup and the URL grabber
 class CouncilClass(AbstractGetBinDataClass):
     """
-    Concrete classes have to implement all abstract operations of the
-    base class. They can also override some operations with a default
-    implementation.
+    A class to fetch and parse bin collection data for Cheshire East Council.
     """
 
-    def parse_data(self, page: str, **kwargs) -> dict:
-        # Make a BS4 object
+    def parse_data(self, page: Any, **kwargs: Any) -> Dict[str, Any]:
         soup = BeautifulSoup(page.text, features="html.parser")
-        soup.prettify()
 
-        bin_data_dict = {"bins": []}
+        bin_data_dict: Dict[str, Any] = {"bins": []}
 
-        # Search for the specific table using BS4
-        rows = soup.find("table", {"class": re.compile("job-details")}).find_all(
-            "tr", {"class": re.compile("data-row")}
+        table: Optional[Tag | NavigableString] = soup.find(
+            "table", {"class": "job-details"}
         )
 
-        # Loops the Rows
-        for row in rows:
-            cells = row.find_all(
-                "td", {"class": lambda L: L and L.startswith("visible-cell")}
-            )
+        if isinstance(table, Tag):  # Ensure we only proceed if 'table' is a Tag
+            rows = table.find_all("tr", {"class": "data-row"})
 
-            labels = cells[0].find_all("label")
-            bin_type = labels[2].get_text(strip=True)
-            collectionDate = labels[1].get_text(strip=True)
+            for row in rows:
+                cells = row.find_all(
+                    "td",
+                    {
+                        "class": lambda L: isinstance(L, str)
+                        and L.startswith("visible-cell")
+                    },  # Explicitly check if L is a string
+                )
+                labels: list[Tag] = cells[0].find_all("label") if cells else []
 
-            # Make each Bin element in the JSON
-            dict_data = {
-                "bin_type": bin_type,
-                "collectionDate": collectionDate,
-            }
+                if len(labels) >= 3:
+                    bin_type: str = labels[2].get_text(strip=True)
+                    collection_date: str = labels[1].get_text(strip=True)
 
-            # Add data to the main JSON Wrapper
-            bin_data_dict["bins"].append(dict_data)
+                    bin_data_dict["bins"].append(
+                        {
+                            "type": bin_type,
+                            "collectionDate": collection_date,
+                        }
+                    )
 
         return bin_data_dict

@@ -3,8 +3,8 @@ from datetime import datetime
 
 import pandas as pd
 from bs4 import BeautifulSoup
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.common import date_format
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 class CouncilClass(AbstractGetBinDataClass):
@@ -42,7 +42,7 @@ class CouncilClass(AbstractGetBinDataClass):
                 day_of_week = re.sub(regex_string, "", week_value.text).strip()
                 collection_date = datetime(
                     int(current_year), int(current_month), int(day_of_week)
-                ).strftime("%d/%m/%Y")
+                ).strftime(date_format)
                 collections = week_value.find_next_siblings("span")
                 for item in collections:
                     x = item.text
@@ -60,7 +60,7 @@ class CouncilClass(AbstractGetBinDataClass):
                 day_of_week = re.sub(regex_string, "", week_value.text).strip()
                 collection_date = datetime(
                     int(current_year), int(current_month), int(day_of_week)
-                ).strftime("%d/%m/%Y")
+                ).strftime(date_format)
                 collections = week_value.find_next_siblings("span")
                 for item in collections:
                     x = item.text

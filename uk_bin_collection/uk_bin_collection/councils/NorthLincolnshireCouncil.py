@@ -1,6 +1,5 @@
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 class CouncilClass(AbstractGetBinDataClass):
@@ -32,12 +31,12 @@ class CouncilClass(AbstractGetBinDataClass):
         }
         requests.packages.urllib3.disable_warnings()
         response = requests.get(
-            f"https://m.northlincs.gov.uk/collection_dates/{uprn}/0/6?_=1546855781728&format=json",
+            f"https://m.northlincs.gov.uk/bin_collections?no_collections=20&uprn={uprn}",
             headers=headers,
         )
         if response.status_code != 200:
             raise ValueError("No bin data found for provided UPRN.")
-        json_data = json.loads(response.text)
+        json_data = json.loads(response.text.encode().decode("utf-8-sig"))
 
         data = {"bins": []}
         for c in json_data["Collections"]:
@@ -45,11 +44,13 @@ class CouncilClass(AbstractGetBinDataClass):
             if bin_type.lower() != "textiles bag":
                 dict_data = {
                     "type": bin_type,
-                    "collectionDate": datetime.strptime(
-                        c["BinCollectionDate"].replace(" (*)", "").strip()
-                        + " "
-                        + datetime.now().strftime("%Y"),
-                        "%A %d %B %Y",
+                    "collectionDate": get_next_occurrence_from_day_month(
+                        datetime.strptime(
+                            c["BinCollectionDate"].replace(" (*)", "").strip()
+                            + " "
+                            + datetime.now().strftime("%Y"),
+                            "%A %d %B %Y",
+                        )
                     ).strftime(date_format),
                 }
                 data["bins"].append(dict_data)

@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -23,6 +23,7 @@ class CouncilClass(AbstractGetBinDataClass):
             "Chrome/87.0.4280.141 Safari/537.36"
         }
 
+        requests.packages.urllib3.disable_warnings()
         with requests.Session() as s:
             # Set Headers
             s.headers = headers

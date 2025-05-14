@@ -3,8 +3,7 @@ from datetime import datetime
 
 import requests
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -22,6 +21,7 @@ class CouncilClass(AbstractGetBinDataClass):
         uprn = kwargs.get("uprn")
         check_uprn(uprn)
 
+        requests.packages.urllib3.disable_warnings()
         response = requests.get(f"{api_url}{uprn}")
         json_response = json.loads(response.content)["services"]
         data = {"bins": []}

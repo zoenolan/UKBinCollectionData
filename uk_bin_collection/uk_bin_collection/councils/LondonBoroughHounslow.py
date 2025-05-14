@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -25,6 +24,7 @@ class CouncilClass(AbstractGetBinDataClass):
         }
 
         # Make a request to the API
+        requests.packages.urllib3.disable_warnings()
         response = requests.post(api_url, data=form_data)
 
         # Make a BS4 object
@@ -49,10 +49,34 @@ class CouncilClass(AbstractGetBinDataClass):
             for bin in h4.find_next_sibling("ul").find_all("li")
         ]
 
-        # Add the bins to the data dict
-        data["bins"] = [
-            {"type": bin_type, "collectionDate": collection_date}
-            for bin_type, collection_date in bins_with_dates
-        ]
+        for bin_type, collection_date in bins_with_dates:
+            if "-" in collection_date:
+                date_part = collection_date.split(" - ")[1]
+                data["bins"].append(
+                    {
+                        "type": bin_type,
+                        "collectionDate": datetime.strptime(
+                            date_part, "%d %b %Y"
+                        ).strftime(date_format),
+                    }
+                )
+            elif len(collection_date.split(" ")) == 4:
+                data["bins"].append(
+                    {
+                        "type": bin_type,
+                        "collectionDate": datetime.strptime(
+                            collection_date, "%A %d %b %Y"
+                        ).strftime(date_format),
+                    }
+                )
+            else:
+                data["bins"].append(
+                    {
+                        "type": bin_type,
+                        "collectionDate": datetime.strptime(
+                            collection_date, "%d %b %Y"
+                        ).strftime(date_format),
+                    }
+                )
 
         return data

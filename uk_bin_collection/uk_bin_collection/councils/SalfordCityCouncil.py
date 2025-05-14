@@ -1,9 +1,9 @@
 from datetime import datetime
 
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -15,19 +15,20 @@ class CouncilClass(AbstractGetBinDataClass):
     """
 
     def parse_data(self, page: str, **kwargs) -> dict:
-        api_url = "https://www.salford.gov.uk/bins-and-recycling/bin-collection-days/your-bin-collections"
         user_uprn = kwargs.get("uprn")
-
         # Check the UPRN is valid
         check_uprn(user_uprn)
 
-        # Create the form data
-        params = {
-            "UPRN": user_uprn,
+        api_url = f"https://www.salford.gov.uk/bins-and-recycling/bin-collection-days/your-bin-collections/?UPRN={user_uprn}"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://www.salford.gov.uk/bins-and-recycling/bin-collection-days/",
         }
 
         # Make a request to the API
-        response = requests.get(api_url, params=params)
+        requests.packages.urllib3.disable_warnings()
+        response = requests.get(api_url, headers=headers)
 
         # Make a BS4 object
         soup = BeautifulSoup(response.text, features="html.parser")
@@ -49,22 +50,22 @@ class CouncilClass(AbstractGetBinDataClass):
             # Loop through each <li> tag in the <ul> tag to extract the collection date
             for li in bin_list.find_all("li"):
                 # Convert the collection time to a datetime object
-                collection_time = datetime.strptime(li.text, "%A %d %B %Y")
+                collection_date = datetime.strptime(li.text, "%A %d %B %Y")
 
                 # Add the bin to the data dict
                 data["bins"].append(
                     {
                         # remove the ":" from the end of the bin type
                         "type": bin_type[:-1],
-                        "collectionTime": collection_time,
+                        "collectionDate": collection_date,
                     }
                 )
 
         # Sort the bins by collection time
-        data["bins"] = sorted(data["bins"], key=lambda x: x["collectionTime"])
+        data["bins"] = sorted(data["bins"], key=lambda x: x["collectionDate"])
 
         # Convert the datetime objects to strings in the desired format
         for bin in data["bins"]:
-            bin["collectionTime"] = bin["collectionTime"].strftime("%A %d %B %Y")
+            bin["collectionDate"] = bin["collectionDate"].strftime(date_format)
 
         return data

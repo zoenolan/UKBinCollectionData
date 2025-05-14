@@ -3,9 +3,9 @@ from datetime import date, datetime
 
 import requests
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -37,6 +37,7 @@ class CouncilClass(AbstractGetBinDataClass):
 
         search_url = f"{self.base_url}/address/{postcode}"
 
+        requests.packages.urllib3.disable_warnings()
         s = requests.Session()
         response = s.get(search_url)
         response.raise_for_status()
@@ -49,8 +50,8 @@ class CouncilClass(AbstractGetBinDataClass):
 
         address_by_id = {}
 
-        for li in soup.findAll("li"):
-            link = li.findAll("a")[0]
+        for li in soup.find_all("li"):
+            link = li.find_all("a")[0]
             address_id = link.attrs["href"]
             address = link.text
 
@@ -61,7 +62,7 @@ class CouncilClass(AbstractGetBinDataClass):
         common = difflib.SequenceMatcher(
             a=addresses[0], b=addresses[1]
         ).find_longest_match()
-        extra_bit = addresses[0][common.a: common.a + common.size]
+        extra_bit = addresses[0][common.a : common.a + common.size]
 
         ids_by_paon = {
             a.replace(extra_bit, ""): a_id.replace("/view/", "").replace("/", "")

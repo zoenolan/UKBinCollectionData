@@ -2,9 +2,9 @@ from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -27,7 +27,8 @@ class CouncilClass(AbstractGetBinDataClass):
         check_postcode(user_postcode)
 
         # Start a new session to walk through the form
-        s = requests.session()
+        requests.packages.urllib3.disable_warnings()
+        s = requests.Session()
 
         # Get our initial session running
         response = s.get("https://apps.wigan.gov.uk/MyNeighbourhood/")
@@ -76,10 +77,10 @@ class CouncilClass(AbstractGetBinDataClass):
         soup = BeautifulSoup(response.text, features="html.parser")
         soup.prettify()
 
-        data = {}
+        data = {"bins": []}
 
-        # Get the dates and transform them into an ISO format for nicer consumption on the backend.
-        for bins in soup.findAll("div", {"class": "BinsRecycling"}):
+        # Get the dates.
+        for bins in soup.find_all("div", {"class": "BinsRecycling"}):
             bin_type = bins.find("h2").text
             binCollection = bins.find("div", {"class": "dateWrapper-next"}).get_text(
                 strip=True
@@ -88,6 +89,10 @@ class CouncilClass(AbstractGetBinDataClass):
                 re.sub(r"(\d)(st|nd|rd|th)", r"\1", binCollection), "%A%d%b%Y"
             )
             if binData:
-                data[bin_type] = binData.isoformat()
+                dict_data = {
+                    "type": bin_type,
+                    "collectionDate": binData.strftime(date_format),
+                }
+                data["bins"].append(dict_data)
 
         return data

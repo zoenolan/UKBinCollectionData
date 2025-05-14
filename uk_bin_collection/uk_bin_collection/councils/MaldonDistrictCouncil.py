@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -29,28 +28,25 @@ class CouncilClass(AbstractGetBinDataClass):
         collections = soup.find_all("div", {"class": "panel"})
         for c in collections:
             binType = c.find("div", {"class": "panel-heading"}).get_text(strip=True)
-            lastCollectionDate = ""
-            nextCollectionDate = ""
+            collectionDate = ""
             rows = c.find("div", {"class": "panel-body"}).find_all(
                 "div", {"class": "row"}
             )
             for row in rows:
-                if row.find("strong").get_text(strip=True).lower() == "last collection":
-                    lastCollectionDate = row.find(
-                        "div", {"class": "col-sm-9"}
-                    ).get_text(strip=True)
                 if row.find("strong").get_text(strip=True).lower() == "next collection":
-                    nextCollectionDate = row.find(
-                        "div", {"class": "col-sm-9"}
-                    ).get_text(strip=True)
+                    collectionDate = row.find("div", {"class": "col-sm-9"}).get_text(
+                        strip=True
+                    )
 
-            if nextCollectionDate != "":
+            if collectionDate != "":
                 collection_data = {
                     "type": binType,
-                    "nextCollectionDate": nextCollectionDate,
+                    "collectionDate": collectionDate,
                 }
-                if lastCollectionDate != "":
-                    collection_data["lastCollectionDate"] = lastCollectionDate
                 data["bins"].append(collection_data)
+
+        data["bins"].sort(
+            key=lambda x: datetime.strptime(x.get("collectionDate"), date_format)
+        )
 
         return data

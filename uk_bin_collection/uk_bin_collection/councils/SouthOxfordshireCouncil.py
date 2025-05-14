@@ -1,8 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -41,6 +41,7 @@ class CouncilClass(AbstractGetBinDataClass):
             "ebd": "0",
             # 'ebz':      '1_1668467255368',
         }
+        requests.packages.urllib3.disable_warnings()
         response = requests.get(
             "https://eform.southoxon.gov.uk/ebase/BINZONE_DESKTOP.eb",
             params=params,
@@ -54,21 +55,48 @@ class CouncilClass(AbstractGetBinDataClass):
 
         data = {"bins": []}
 
+        current_year = datetime.now().year
+        next_year = current_year + 1
+
         # Page has slider info side by side, which are two instances of this class
         for bin in soup.find_all("div", {"class": "binextra"}):
-            bin_info = bin.text.split("-")
+            bin_info = list(bin.stripped_strings)
             try:
-                # No date validation since year isn't included on webpage
-                bin_date = bin_info[0].strip()
-                bin_type = str.capitalize(bin_info[1].strip())
-            except Exception as ex:
-                raise ValueError(f"Error parsing bin data: {ex}")
+                # On standard collection schedule, date will be contained in the first stripped string
+                if contains_date(bin_info[0]):
+                    bin_date = get_next_occurrence_from_day_month(
+                        datetime.strptime(
+                            bin_info[0],
+                            "%A %d %B -",
+                        )
+                    )
+                    bin_type = str.capitalize(" ".join(bin_info[1:]))
+                # On exceptional collection schedule (e.g. around English Bank Holidays), date will be contained in the second stripped string
+                else:
+                    bin_date = get_next_occurrence_from_day_month(
+                        datetime.strptime(
+                            bin_info[1],
+                            "%A %d %B -",
+                        )
+                    )
+                    bin_type = str.capitalize(" ".join(bin_info[2:]))
+            except:
+                continue
+
+            if (datetime.now().month == 12) and (bin_date.month == 1):
+                bin_date = bin_date.replace(year=next_year)
+            else:
+                bin_date = bin_date.replace(year=current_year)
 
             # Build data dict for each entry
             dict_data = {
                 "type": bin_type,
-                "collectionDate": bin_date,
+                "collectionDate": bin_date.strftime(date_format),
             }
             data["bins"].append(dict_data)
+
+        data["bins"].sort(
+            key=lambda x: datetime.strptime(x.get("collectionDate"), date_format)
+        )
 
         return data

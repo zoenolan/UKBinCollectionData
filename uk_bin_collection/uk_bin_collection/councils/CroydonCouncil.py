@@ -1,9 +1,9 @@
 import time
 
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 def get_headers(base_url: str, method: str) -> dict[str, str]:
@@ -76,7 +76,7 @@ def get_csrf_token(s: requests.session, base_url: str) -> str:
     """
     Gets a CSRF token
         :rtype: str
-        :param s: requests.session() to use
+        :param s: requests.Session() to use
         :param base_url: Base URL to use
         :return: CSRF token
     """
@@ -107,7 +107,7 @@ def get_address_id(
     """
     Gets the address ID
         :rtype: str
-        :param s: requests.session() to use
+        :param s: requests.Session() to use
         :param base_url: Base URL to use
         :param csrf_token: CSRF token to use
         :param postcode: Postcode to use
@@ -172,7 +172,7 @@ def get_collection_data(
     """
     Gets the collection data
         :rtype: str
-        :param s: requests.session() to use
+        :param s: requests.Session() to use
         :param base_url: Base URL to use
         :param csrf_token: CSRF token to use
         :param address_id: Address id to use
@@ -241,7 +241,7 @@ class CouncilClass(AbstractGetBinDataClass):
 
     def parse_data(self, page: str, **kwargs) -> dict:
         requests.packages.urllib3.disable_warnings()
-        s = requests.session()
+        s = requests.Session()
         base_url = "https://service.croydon.gov.uk"
         paon = kwargs.get("paon")
         postcode = kwargs.get("postcode")
@@ -267,18 +267,12 @@ class CouncilClass(AbstractGetBinDataClass):
             data = {"bins": []}
 
             for e in collection_record_elements:
-                collection_type = e.find_all(
-                    "div", {"class": "fragment_presenter_template_show"}
-                )[0].text.strip()
-                collection_date = (
-                    e.find("div", {"class": "bin-collection-next"})
-                    .attrs["data-current_value"]
-                    .strip()
-                )
+                collection_type = e.find("h2").get_text()
+                collection_date = e.find("span", {"class": "value-as-text"}).get_text()
                 dict_data = {
                     "type": collection_type,
                     "collectionDate": datetime.strptime(
-                        collection_date, "%d/%m/%Y %H:%M"
+                        collection_date, "%A %d %B %Y"
                     ).strftime(date_format),
                 }
                 data["bins"].append(dict_data)

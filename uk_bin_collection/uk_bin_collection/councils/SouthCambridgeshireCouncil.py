@@ -1,8 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -26,6 +26,7 @@ class CouncilClass(AbstractGetBinDataClass):
         user_paon = kwargs.get("paon")
 
         # Establish session
+        requests.packages.urllib3.disable_warnings()
         s = requests.Session()
         r = s.get(
             "https://www.scambs.gov.uk/recycling-and-bins/find-your-household-bin-collection-day/",
@@ -59,7 +60,7 @@ class CouncilClass(AbstractGetBinDataClass):
                 date_format
             )
             for round in collection["roundTypes"]:
-                dict_data = {"binType": round.title(), "collectionDate": dt}
+                dict_data = {"type": round.title(), "collectionDate": dt}
                 data["bins"].append(dict_data)
 
         return data

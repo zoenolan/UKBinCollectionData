@@ -2,9 +2,9 @@ from datetime import date, datetime
 
 import requests
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -25,7 +25,7 @@ class CouncilClass(AbstractGetBinDataClass):
         # WBC use a url parameter called "Track" that's generated when you start a form session.
         # So first off, open the page, find the page link and copy it with the Track
         start_url = "https://wav-wrp.whitespacews.com/"
-        s = requests.session()
+        s = requests.Session()
         response = s.get(start_url)
         soup = BeautifulSoup(response.content, features="html.parser")
         soup.prettify()

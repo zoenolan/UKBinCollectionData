@@ -1,15 +1,12 @@
-import time
-
 from bs4 import BeautifulSoup
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 class CouncilClass(AbstractGetBinDataClass):
@@ -30,12 +27,10 @@ class CouncilClass(AbstractGetBinDataClass):
             monthName = month.select('h3[class*="bin-collection__title"]')[
                 0
             ].text.strip()
-            print(monthName)
             for collectionDay in month.select('li[class*="bin-collection__item"]'):
                 bin_type = collectionDay.select('span[class*="bin-collection__type"]')[
                     0
                 ].text.strip()
-                print(bin_type)
                 binCollection = (
                     collectionDay.select('span[class*="bin-collection__day"]')[
                         0
@@ -47,11 +42,12 @@ class CouncilClass(AbstractGetBinDataClass):
                     + " "
                     + monthName
                 )
-                print(binCollection)
 
                 dict_data = {
                     "type": bin_type,
-                    "collectionDate": binCollection,
+                    "collectionDate": datetime.strptime(
+                        binCollection, "%A, %d %B %Y"
+                    ).strftime(date_format),
                 }
 
                 data["bins"].append(dict_data)
@@ -59,73 +55,79 @@ class CouncilClass(AbstractGetBinDataClass):
         return data
 
     def parse_data(self, page: str, **kwargs) -> dict:
-        page = "https://www.highpeak.gov.uk/findyourbinday"
+        driver = None
+        try:
+            page = "https://www.highpeak.gov.uk/findyourbinday"
 
-        # Assign user info
-        user_postcode = kwargs.get("postcode")
-        user_paon = kwargs.get("paon")
+            # Assign user info
+            user_postcode = kwargs.get("postcode")
+            user_paon = kwargs.get("paon")
+            web_driver = kwargs.get("web_driver")
+            headless = kwargs.get("headless")
 
-        # Set up Selenium to run 'headless'
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+            # Create Selenium webdriver
+            driver = create_webdriver(web_driver, headless, None, __name__)
+            driver.get(page)
 
-        # Create Selenium webdriver
-        driver = webdriver.Chrome(options=options)
-        driver.get(page)
-
-        # Hide Cookies
-        inputElement_hc = driver.find_element(
-            By.CLASS_NAME, "cookiemessage__link--close"
-        )
-        inputElement_hc.click()
-
-        # Enter postcode in text box and wait
-        inputElement_pc = driver.find_element(
-            By.ID, "FINDBINDAYSHIGHPEAK_POSTCODESELECT_POSTCODE"
-        )
-        inputElement_pc.send_keys(user_postcode)
-        inputElement_pc.send_keys(Keys.ENTER)
-
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located(
-                (By.ID, "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESS")
+            # Enter postcode in text box and wait
+            inputElement_pc = driver.find_element(
+                By.ID, "FINDBINDAYSHIGHPEAK_POSTCODESELECT_POSTCODE"
             )
-        )
+            inputElement_pc.send_keys(user_postcode)
+            inputElement_pc.send_keys(Keys.ENTER)
 
-        # Select address from dropdown and wait
-        inputElement_ad = Select(
-            driver.find_element(By.ID, "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESS")
-        )
-
-        inputElement_ad.select_by_visible_text(user_paon)
-
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located(
-                (By.ID, "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESSSELECTNEXTBTN_NEXT")
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.ID, "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESS")
+                )
             )
-        )
 
-        # Submit address information and wait
-        driver.find_element(
-            By.ID, "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESSSELECTNEXTBTN_NEXT"
-        ).click()
+            # Select address from dropdown and wait
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//select[@id='FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESS']//option[contains(., '"
+                        + user_paon
+                        + "')]",
+                    )
+                )
+            ).click()
 
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located(
-                (By.ID, "FINDBINDAYSHIGHPEAK_CALENDAR_MAINCALENDAR")
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (
+                        By.ID,
+                        "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESSSELECTNEXTBTN_NEXT",
+                    )
+                )
             )
-        )
 
-        # Read next collection information into Pandas
-        table = driver.find_element(
-            By.ID, "FINDBINDAYSHIGHPEAK_CALENDAR_MAINCALENDAR"
-        ).get_attribute("outerHTML")
+            # Submit address information and wait
+            driver.find_element(
+                By.ID, "FINDBINDAYSHIGHPEAK_ADDRESSSELECT_ADDRESSSELECTNEXTBTN_NEXT"
+            ).click()
 
-        # Parse data into dict
-        data = self.get_data(table)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.ID, "FINDBINDAYSHIGHPEAK_CALENDAR_MAINCALENDAR")
+                )
+            )
 
+            # Read next collection information into Pandas
+            table = driver.find_element(
+                By.ID, "FINDBINDAYSHIGHPEAK_CALENDAR_MAINCALENDAR"
+            ).get_attribute("outerHTML")
+
+            # Parse data into dict
+            data = self.get_data(table)
+        except Exception as e:
+            # Here you can log the exception if needed
+            print(f"An error occurred: {e}")
+            # Optionally, re-raise the exception if you want it to propagate
+            raise
+        finally:
+            # This block ensures that the driver is closed regardless of an exception
+            if driver:
+                driver.quit()
         return data

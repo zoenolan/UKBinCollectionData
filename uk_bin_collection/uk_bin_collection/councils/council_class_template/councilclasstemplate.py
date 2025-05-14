@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -21,9 +20,14 @@ class CouncilClass(AbstractGetBinDataClass):
 
         for bins in soup.select('div[class*="service-item"]'):
             bin_type = bins.div.h3.text.strip()
-            binCollection = bins.select("div > p")[1].get_text(strip=True)
-            # binImage = "https://myaccount.stockport.gov.uk"   bins.img['src']
-            if binCollection:
-                data[bin_type] = binCollection
+            bin_collection = bins.select("div > p")[1]
+            if bin_collection:
+                dict_data = {
+                    "type": bin_type,
+                    "collectionDate": datetime.strptime(
+                        bin_collection.get_text(strip=True), date_format
+                    ),
+                }
+                data["bins"].append(dict_data)
 
         return data

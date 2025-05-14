@@ -3,8 +3,7 @@ from datetime import datetime
 
 import requests
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 def get_address_uprn(postcode: str, paon: str, api_url: str) -> str:
@@ -20,8 +19,8 @@ def get_address_uprn(postcode: str, paon: str, api_url: str) -> str:
     payload = json.dumps(
         {
             "jsonrpc": "2.0",
-            "id": "1642260173663",
-            "method": "ictGetAddressList",
+            "id": "1689431267990",
+            "method": "stc.common.snippets.getAddressList",
             "params": {"postcode": f"{postcode.replace(' ', '')}", "localonly": "true"},
         }
     )
@@ -29,17 +28,11 @@ def get_address_uprn(postcode: str, paon: str, api_url: str) -> str:
     response = requests.post(api_url, data=payload, headers=headers)
 
     json_response = json.loads(response.content)
-    results = json_response["result"]
-    result_line = ""
+    results = json_response["result"]["ReturnedList"]
 
     for item in results:
-        while len(result_line) < 1:
-            result_line = [
-                element
-                for element in item.get("Address").split()
-                if item.get("Address").split()[0] == paon.strip()
-            ]
-            addr = item.get("UPRN") + "|" + item.get("Address")
+        if item["Address"].split()[0] == paon.strip():
+            addr = item["UPRN"] + "|" + item["Address"]
             break
 
     return addr
@@ -53,6 +46,7 @@ class CouncilClass(AbstractGetBinDataClass):
     """
 
     def parse_data(self, page: str, **kwargs) -> dict:
+        requests.packages.urllib3.disable_warnings()
         api_url = "https://www.southtyneside.gov.uk/apiserver/ajaxlibrary/"
         user_postcode = kwargs.get("postcode")
         user_paon = kwargs.get("paon")
@@ -79,8 +73,8 @@ class CouncilClass(AbstractGetBinDataClass):
         payload = json.dumps(
             {
                 "jsonrpc": "2.0",
-                "id": "1642260412610",
-                "method": "wtGetBinCollectionDates",
+                "id": "1689431609779",
+                "method": "stc.waste.collections.getDates",
                 "params": {"addresscode": uprn},
             }
         )
@@ -97,7 +91,7 @@ class CouncilClass(AbstractGetBinDataClass):
                     "type": item["Type"],
                     "collectionDate": datetime.strptime(
                         item["DateString"], "%d %B %Y"
-                    ).strftime("%d/%m/%Y"),
+                    ).strftime(date_format),
                 }
                 data["bins"].append(dict_data)
 

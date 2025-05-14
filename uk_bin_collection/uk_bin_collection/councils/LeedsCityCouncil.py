@@ -1,9 +1,16 @@
+import urllib.request
 from datetime import datetime
-from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 import pandas as pd
-import urllib.request
+from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.wait import WebDriverWait
+
+from uk_bin_collection.uk_bin_collection.common import *
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 class CouncilClass(AbstractGetBinDataClass):
@@ -14,87 +21,100 @@ class CouncilClass(AbstractGetBinDataClass):
     """
 
     def parse_data(self, page: str, **kwargs) -> dict:
-        """
-        Parse council provided CSVs to get the latest bin collections for address
-        """
-        # URLs to data sources
-        address_csv_url = "https://opendata.leeds.gov.uk/downloads/bins/dm_premises.csv"
-        collections_csv_url = "https://opendata.leeds.gov.uk/downloads/bins/dm_jobs.csv"
+        driver = None
+        try:
+            """
+            Parse council provided CSVs to get the latest bin collections for address
+            """
 
-        user_postcode = kwargs.get("postcode")
-        user_paon = kwargs.get("paon")
+            user_uprn = kwargs.get("uprn")
+            user_postcode = kwargs.get("postcode")
+            web_driver = kwargs.get("web_driver")
+            headless = kwargs.get("headless")
+            check_uprn(user_uprn)
+            check_postcode(user_postcode)
+            # Create Selenium webdriver
+            page = f"https://www.leeds.gov.uk/residents/bins-and-recycling/check-your-bin-day"
 
-        check_postcode(user_postcode)
-        check_paon(user_paon)
+            driver = create_webdriver(web_driver, headless, None, __name__)
+            driver.get(page)
 
-        data = {"bins": []}  # dictionary for data
-        prop_id = 0  # LCC use city wide URPNs in this dataset
-        result_row = None  # store the property as a row
-
-        # Get address csv and give it headers (pandas bypasses downloading the file)
-        # print("Getting address data...")
-        with urllib.request.urlopen(address_csv_url) as response:
-            addr = pd.read_csv(
-                response,
-                names=[
-                    "PropertyId",
-                    "PropertyName",
-                    "PropertyNo",
-                    "Street",
-                    "Town",
-                    "City",
-                    "Postcode",
-                ],
-                sep=",",
-            )
-
-        # Get collections csv and give it headers
-        # print("Getting collection data...")
-        with urllib.request.urlopen(collections_csv_url) as response:
-            coll = pd.read_csv(
-                response, names=["PropertyId", "BinType", "CollectionDate"], sep=","
-            )
-
-        # Find the property id from the address data
-        # ("Finding property reference...")
-        for row in addr.itertuples():
-            if (
-                str(row.Postcode).replace(" ", "").lower()
-                == user_postcode.replace(" ", "").lower()
-            ):
-                if row.PropertyNo == user_paon:
-                    prop_id = row.PropertyId
-                    # print(f"Reference: {str(prop_id)}")
-                    continue
-
-        # For every match on the property id in the collections data, add the bin type and date to list
-        # Note: time is 7am as that's when LCC ask bins to be out by
-        job_list = []
-        # print(f"Finding collections for property reference: {user_paon} {result_row.Street} "
-        #      f"{result_row.Postcode}...")
-        for row in coll.itertuples():
-            if row.PropertyId == prop_id:
-                time = datetime.strptime("070000", "%H%M%S").time()
-                date_obj = datetime.strptime(row.CollectionDate, "%d/%m/%y")
-                combined_date = datetime.combine(date_obj, time).strftime(
-                    "%d/%m/%Y %H:%M:%S"
+            wait = WebDriverWait(driver, 60)
+            postcode_box = wait.until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//input[@id='postcode']",
+                    )
                 )
+            )
+            postcode_box.send_keys(user_postcode)
+            postcode_btn_present = wait.until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//button[contains(text(),'Look up Address')]",
+                    )
+                )
+            )
 
-                job_list.append([row.BinType, combined_date])
+            postcode_btn_present.send_keys(Keys.RETURN)
 
-        # If jobs exist, sort list by date order. Load list into dictionary to return
-        # print("Processing collections...")
-        if len(job_list) > 0:
-            job_list.sort(key=lambda x: datetime.strptime(x[1], "%d/%m/%Y %H:%M:%S"))
-            for i in range(len(job_list)):
-                job_date = datetime.strptime(job_list[i][1], "%d/%m/%Y %H:%M:%S")
-                if datetime.now() < job_date:
-                    dict_data = {
-                        "type": job_list[i][0],
-                        "collectionDate": job_list[i][1],
-                    }
-                    data["bins"].append(dict_data)
-        else:
-            print("No bin collections found for property!")
+            dropdown_present = wait.until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        '//option[contains(text(),"Select an address")]/parent::select',
+                    )
+                )
+            )
 
+            dropdown_select = Select(dropdown_present)
+
+            dropdown_select.select_by_value(user_uprn)
+
+            result = wait.until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//div[@class='lcc-bins']",
+                    )
+                )
+            )
+
+            data = {"bins": []}  # dictionary for data
+            soup = BeautifulSoup(
+                result.get_attribute("innerHTML"), features="html.parser"
+            )
+
+            bin_sections = soup.select("div.lcc-bin:not(.lcc-bin--calendar)")
+
+            for section in bin_sections:
+                h3_text = section.find("h3").get_text(strip=True)
+                bin_type = h3_text.split()[0]  # e.g., 'Black', 'Brown', 'Green'
+
+                # Find all <li> elements inside the bin days list
+                date_elements = section.select("div.lcc-bin__days li")
+                for li in date_elements:
+                    raw_date = li.get_text(strip=True)
+                    if not raw_date:
+                        continue
+                    try:
+                        formatted_date = datetime.strptime(
+                            raw_date, "%A %d %b %Y"
+                        ).strftime(date_format)
+                        data["bins"].append(
+                            {"type": bin_type, "collectionDate": formatted_date}
+                        )
+                    except ValueError:
+                        print(f"Skipping unparseable date: {raw_date}")
+        except Exception as e:
+            # Here you can log the exception if needed
+            print(f"An error occurred: {e}")
+            # Optionally, re-raise the exception if you want it to propagate
+            raise
+        finally:
+            # This block ensures that the driver is closed regardless of an exception
+            if driver:
+                driver.quit()
         return data

@@ -2,9 +2,9 @@ import ast
 
 import requests
 from bs4 import BeautifulSoup
+
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -19,7 +19,8 @@ class CouncilClass(AbstractGetBinDataClass):
         user_uprn = kwargs.get("uprn")
         check_uprn(user_uprn)
 
-        s = requests.session()
+        requests.packages.urllib3.disable_warnings()
+        s = requests.Session()
 
         service_type_headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,"
@@ -125,11 +126,14 @@ class CouncilClass(AbstractGetBinDataClass):
 
         collections = []
         for bin in collection_data:
+            if not bin["collection"]:
+                continue  # Skip if there are no collection dates
+
             bin_type = bin["containerName"]
             next_collection = datetime.strptime(
                 bin["collection"][0]["nextCollectionDate"], "%Y-%m-%dT%H:%M:%S"
             ).strftime(date_format)
-            # Could work out next date using the roundDescription and the is_holiday function in common.py
+
             collections.append((bin_type, next_collection))
 
         ordered_data = sorted(collections, key=lambda x: x[1])

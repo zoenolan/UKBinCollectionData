@@ -4,15 +4,17 @@ import os
 
 def main():
     # initial markdown content
-    md = "<!-- THIS FILE IS AUTO-GENERATED ANY CHANGES WILL BE OVERWRITTEN -->\n" \
-         "<!-- Update `uk_bin_collection/tests/input.json` to make changes to this file -->\n\n" \
-         "This Markdown document provides a list of commands and parameters for use with this script.\n\n" \
-         "As a reminder, most scripts only need a module name and a URL to run, but others need more parameters " \
-         "depending on how the data is scraped.\n\n" \
-         "For scripts that need postcodes, these should be provided in double quotes and with a space, " \
-         "e.g. `\"AA1 2BB\"` rather than `AA12BB`.\n\n" \
-         "This document is still a work in progress, don't worry if your council isn't listed - it will be soon!\n\n" \
-         "## Contents\n"
+    md = (
+        "<!-- THIS FILE IS AUTO-GENERATED ANY CHANGES WILL BE OVERWRITTEN -->\n"
+        "<!-- Update `uk_bin_collection/tests/input.json` to make changes to this file -->\n\n"
+        "This Markdown document provides a list of commands and parameters for use with this script.\n\n"
+        "As a reminder, most scripts only need a module name and a URL to run, but others need more parameters "
+        "depending on how the data is scraped.\n\n"
+        "For scripts that need postcodes, these should be provided in double quotes and with a space, "
+        'e.g. `"AA1 2BB"` rather than `AA12BB`.\n\n'
+        "This document is still a work in progress, don't worry if your council isn't listed - it will be soon!\n\n"
+        "## Contents\n"
+    )
 
     # get input.json
     cwd = os.getcwd()
@@ -23,26 +25,39 @@ def main():
         entries = ""
         for council, council_details in json_data.items():
             if council != "" and council_details.get("wiki_name", council) != "":
-
                 # add contents entry to markdown content
                 md += "- [" + council_details.get("wiki_name", council) + "]"
-                md += "(#" + council_details.get("wiki_name", council).lower().replace(" ", "-") + ")\n"
+                md += (
+                    "(#"
+                    + council_details.get("wiki_name", council)
+                    .lower()
+                    .replace(" ", "-")
+                    + ")\n"
+                )
 
                 # get additional arguments
-                command = council_details.get("wiki_command_url_override", council_details.get("url", ""))
+                command = council_details.get(
+                    "wiki_command_url_override", council_details.get("url", "")
+                )
                 additional_parameters = ""
-                if "SKIP_GET_URL" in council_details:
+                if "skip_get_url" in council_details:
                     command += " -s"
                     additional_parameters += "- `-s` - skip get URL\n"
                 if "uprn" in council_details:
                     command += " -u XXXXXXXX"
                     additional_parameters += "- `-u` - UPRN\n"
                 if "postcode" in council_details:
-                    command += " -p \"XXXX XXX\""
+                    command += ' -p "XXXX XXX"'
                     additional_parameters += "- `-p` - postcode\n"
                 if "house_number" in council_details:
                     command += " -n XX"
                     additional_parameters += "- `-n` - house number\n"
+                if "usrn" in council_details:
+                    command += " -usrn XXXXXXXX"
+                    additional_parameters += "- `-us` - USRN\n"
+                if "web_driver" in council_details:
+                    command += " -w http://HOST:PORT/"
+                    additional_parameters += "- `-w` - remote Selenium web driver URL (required for Home Assistant)\n"
 
                 # add to entries
                 entries += "\n---\n\n"

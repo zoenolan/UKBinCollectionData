@@ -4,8 +4,7 @@ from datetime import timedelta
 
 import requests
 from uk_bin_collection.uk_bin_collection.common import *
-from uk_bin_collection.uk_bin_collection.get_bin_data import \
-    AbstractGetBinDataClass
+from uk_bin_collection.uk_bin_collection.get_bin_data import AbstractGetBinDataClass
 
 
 # import the wonderful Beautiful Soup and the URL grabber
@@ -37,6 +36,7 @@ class CouncilClass(AbstractGetBinDataClass):
             "End": str(four_weeks),
         }
 
+        requests.packages.urllib3.disable_warnings()
         response = requests.get(base_url, params=params)
 
         # 200 = ok. I got a 500 in testing, so assumed no data for that address
